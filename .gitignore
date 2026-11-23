@@ -1,3 +1,4 @@
 .DS_Store
 .scrape_state.json
 contest_filter
+.claude/settings.local.json

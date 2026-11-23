@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -35,6 +36,9 @@ type Concurso struct {
 }
 
 func main() {
+	noOpen := flag.Bool("no-open", false, "no abrir el navegador al terminar")
+	flag.Parse()
+
 	if err := asegurarOriginal(); err != nil {
 		log.Fatalf("Error obteniendo HTML: %v", err)
 	}
@@ -87,7 +91,9 @@ func main() {
 	crearHTML(nombreArchivo, resultados)
 
 	fmt.Printf("✅ %d concursos procesados.\n", len(resultados))
-	abrirNavegador(nombreArchivo)
+	if !*noOpen {
+		abrirNavegador(nombreArchivo)
+	}
 }
 
 type estado struct {

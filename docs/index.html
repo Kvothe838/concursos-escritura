@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concursos Literarios</title>
+<style>
+  :root {
+    --primary: #0d5e80;
+    --primary-dark: #084560;
+    --primary-light: #e8f3f8;
+    --accent: #16a34a;
+    --accent-soft: #ecfdf5;
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --border: #e3e8ee;
+    --border-strong: #cdd5df;
+    --text: #1a2733;
+    --text-muted: #6b7785;
+    --text-faint: #98a2b3;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 12px 28px -6px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1040px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  /* Header */
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+  h1 { font-size: 1.75rem; color: var(--primary-dark); margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+  h1 .emoji { margin-right: 6px; }
+  .stats { color: var(--text-muted); font-size: 0.9rem; }
+  .stats strong { color: var(--text); font-weight: 600; }
+
+  /* Filter bar */
+  .filter-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 22px;
+    overflow: hidden;
+    position: sticky;
+    top: 12px;
+    z-index: 10;
+    backdrop-filter: saturate(180%) blur(8px);
+  }
+  .filter-bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    gap: 12px;
+  }
+  .filter-bar-title {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600; color: var(--text); font-size: 0.95rem;
+  }
+  .filter-bar-title .badge {
+    background: var(--primary);
+    color: white;
+    font-size: 0.72rem;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .toggle-btn {
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    color: var(--text);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .toggle-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+  .active-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 18px 14px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border: 1px solid #cce4ee;
+    padding: 4px 4px 4px 11px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+  .chip.persistent { background: #f1f5f9; color: var(--text); border-color: var(--border); }
+  .chip .chip-x {
+    cursor: pointer;
+    opacity: 0.55;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    line-height: 1;
+    font-size: 0.95rem;
+  }
+  .chip .chip-x:hover { opacity: 1; background: rgba(0,0,0,0.08); }
+  .chip-empty { color: var(--text-faint); font-size: 0.85rem; font-style: italic; padding: 2px 0; }
+
+  /* Editor */
+  .editor {
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 18px;
+  }
+  .editor.hidden { display: none; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .field input[type="text"], .field input[type="date"], .field select {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 11px;
+    font-size: 0.95rem;
+    background: white;
+    color: var(--text);
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(13, 94, 128, 0.15);
+  }
+  .genres-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .genre-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: white;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+    color: var(--text);
+  }
+  .genre-toggle:hover { border-color: var(--primary); color: var(--primary); }
+  .genre-toggle.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    font-weight: 600;
+  }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    border: 1px solid var(--border-strong);
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--bg); border-color: var(--text-muted); }
+  .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+
+  /* List */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s;
+    box-shadow: var(--shadow-sm);
+    gap: 16px;
+  }
+  .row:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  .main-info { flex: 1; min-width: 0; }
+  .title {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 1rem;
+    display: block;
+    margin-bottom: 7px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .row:hover .title { color: var(--primary-dark); }
+  .meta { font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+  .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 2px 9px;
+    border-radius: 999px;
+  }
+  .meta-item .ic { opacity: 0.7; }
+  .prize-info {
+    text-align: right;
+    min-width: 130px;
+    max-width: 220px;
+    flex-shrink: 0;
+  }
+  .prize-amount {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    background: var(--accent-soft);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+  }
+  .empty {
+    text-align: center;
+    padding: 64px 20px;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+  }
+  .empty.hidden { display: none; }
+
+  @media (max-width: 700px) {
+    .editor { grid-template-columns: 1fr; }
+    .row { flex-direction: column; align-items: stretch; }
+    .prize-info { text-align: left; min-width: 0; max-width: none; }
+    .prize-amount { display: inline-block; }
+    h1 { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="page-head">
+    <h1><span class="emoji">📝</span>Concursos Literarios</h1>
+    <div class="stats">Mostrando <strong id="visible-count">0</strong> de <strong>127</strong> concursos</div>
+  </header>
+
+  <section class="filter-bar">
+    <div class="filter-bar-top">
+      <div class="filter-bar-title">
+        <span>🔍 Filtros aplicados</span>
+        <span class="badge" id="active-count">0</span>
+      </div>
+      <button class="toggle-btn" id="toggle-btn">⚙️ <span id="toggle-label">Editar filtros</span></button>
+    </div>
+    <div class="active-chips" id="active-chips"></div>
+    <div class="editor hidden" id="editor">
+      <div class="field">
+        <label for="f-title">Texto en título</label>
+        <input id="f-title" type="text" placeholder="(España)">
+      </div>
+      <div class="field">
+        <label for="f-fecha">Fecha límite mínima</label>
+        <input id="f-fecha" type="date">
+      </div>
+      <div class="field full">
+        <label>Géneros (cualquiera coincide)</label>
+        <div class="genres-grid" id="genres-grid"></div>
+      </div>
+      <div class="field">
+        <label for="f-sort">Ordenar por</label>
+        <select id="f-sort">
+          <option value="premio-desc">💰 Premio (mayor primero)</option>
+          <option value="premio-asc">💰 Premio (menor primero)</option>
+          <option value="fecha-asc">📅 Fecha (próximos primero)</option>
+          <option value="fecha-desc">📅 Fecha (lejanos primero)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <div class="actions">
+          <button class="btn btn-primary" id="btn-reset">↻ Restablecer</button>
+          <button class="btn" id="btn-clear">Limpiar todo</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="list" id="list"></div>
+  <div class="empty hidden" id="empty">No hay concursos que coincidan con los filtros.</div>
+</div>
+
+<script>
+const DATA = [{"titulo":"XVI CERTAMEN INTERNACIONAL DE MICRORRELATOS 2026 «CROSS DE ATAPUERCA» (España)","link":"https://www.escritores.org/recursos-para-escritores/42171-xvi-certamen-internacional-de-microrrelatos-2026-cross-de-atapuerca","fecha":"23/11/2026","fechaISO":"2026-11-23","genero":"Microrrelato","premio":"600 euros","premioValor":600},{"titulo":"PREMIO LATINOAMERICANO DE PRIMERA NOVELA SERGIO GALINDO 2027 (México)","link":"https://www.escritores.org/recursos-para-escritores/42172-premio-latinoamericano-de-primera-novela-sergio-galindo","fecha":"23/11/2026","fechaISO":"2026-11-23","genero":"Novela","premio":"$150,000.00 (ciento cincuenta mil pesos, 00","premioValor":150},{"titulo":"XXXII CERTAMEN LITERARIO INTERNACIONAL - XVI CERTAMEN LITERARIO LOCAL “ANA DE VELASCO” DE MARCILLA (España)","link":"https://www.escritores.org/recursos-para-escritores/42161-xxxii-certamen-literario-internacional-xvi-certamen-literario-local-ana-de-velasco-de-marcilla","fecha":"23/11/2026","fechaISO":"2026-11-23","genero":"Relato corto","premio":"600 euros","premioValor":600},{"titulo":"CONVOCATORIA REVISTA LITERARIA INTERNACIONAL MENSUAL “DE ERATO AL MUNDO” (Uruguay)","link":"https://www.escritores.org/recursos-para-escritores/42280-convocatoria-revista-literaria-internacional-mensual-de-erato-al-mundo","fecha":"25/11/2026","fechaISO":"2026-11-25","genero":"Relatos; Ensayo; Poesía","premio":"Certificado. Publicación en revista","premioValor":0},{"titulo":"IV CONCURSO \"MAGA\" DE RELATOS CORTOS E ILUSTRACIONES (DIVERSIDAD FUNCIONAL) (España)","link":"https://www.escritores.org/recursos-para-escritores/41962-iv-concurso-maga-de-relatos-cortos-e-ilustraciones-diversidad-funcional","fecha":"26/11/2026","fechaISO":"2026-11-26","genero":"Relato corto, Ilustración","premio":"15 ejemplares de la Antología de Relatos Cortos e Ilustraciones 2026","premioValor":15},{"titulo":"X EDICIÓN PREMIO EDHASA NARRATIVAS HISTÓRICAS 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42236-x-edicion-premio-edhasa-narrativas-historicas-2027","fecha":"26/11/2026","fechaISO":"2026-11-26","genero":"Novela histórica","premio":"10.000 euros, publicación","premioValor":10000},{"titulo":"48º. CONCURSO LITERARIO “DR. ALBERTO MANINI RÍOS” - 2026 (Uruguay)","link":"https://www.escritores.org/recursos-para-escritores/42187-48-concurso-literario-dr-alberto-manini-rios-2026","fecha":"27/11/2026","fechaISO":"2026-11-27","genero":"Cuento y Poesía","premio":"trofeo, diploma y libros.","premioValor":0},{"titulo":"BECA MICHAEL JACOBS DE CRÓNICA VIAJERA 2027 (Colombia)","link":"https://www.escritores.org/recursos-para-escritores/42255-beca-michael-jacobs-de-cronica-viajera-2027","fecha":"27/11/2026","fechaISO":"2026-11-27","genero":"Beca","premio":"10.000 dólares","premioValor":10000},{"titulo":"X CONCURSO DE MICRORRELATOS SOBRE DERECHOS HUMANOS DE AMNISTÍA INTERNACIONAL EXTREMADURA (España)","link":"https://www.escritores.org/recursos-para-escritores/42272-x-concurso-de-microrrelatos-sobre-derechos-humanos-de-amnistia-internacional-extremadura","fecha":"29/11/2026","fechaISO":"2026-11-29","genero":"Microrrelato","premio":"obra de un artista extremeño","premioValor":0},{"titulo":"VII CERTAMEN DE MICRORRELATOS DE VOLUNTARIADO EN CUIDADOS PALIATIVOS (España)","link":"https://www.escritores.org/recursos-para-escritores/41625-vii-certamen-de-microrrelatos-de-voluntariado-en-cuidados-paliativos","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Microrrelato","premio":"lote de libros por valor de 100 euros","premioValor":100},{"titulo":"LXXXVI PREMIO “ALEJANDRO PÉREZ LUGÍN 2026” DE PERIODISMO (España)","link":"https://www.escritores.org/recursos-para-escritores/42216-lxxxvi-premio-alejandro-perez-lugin-2026-de-periodismo","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Periodismo","premio":"3.000 euros","premioValor":3000},{"titulo":"II PREMIO LITERARIO JORGE \"MÁGICO\" GONZÁLEZ (México)","link":"https://www.escritores.org/recursos-para-escritores/41915-ii-premio-literario-jorge-magico-gonzalez","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Poesía","premio":"Edición y 50 ejemplares para el autor","premioValor":50},{"titulo":"PREMIO AZORÍN DE NOVELA 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42127-premio-azorin-de-novela-2027","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Novela","premio":"45.000 euros y publicación","premioValor":45000},{"titulo":"XXXIII PREMIO INTERNACIONAL DE PERIODISMO GASTRONÓMICO \"ALVARO CUNQUEIRO\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42121-xxxiii-premio-internacional-de-periodismo-gastronomico-alvaro-cunqueiro","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Periodismo","premio":"4.000 euros","premioValor":4000},{"titulo":"XXXIV CERTAMEN DE NOVELA CORTA 'JOSÉ LUIS CASTILLO-PUCHE' (España)","link":"https://www.escritores.org/recursos-para-escritores/41987-xxxiv-certamen-de-novela-corta-jose-luis-castillo-puche","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Novela","premio":"3.000 euros","premioValor":3000},{"titulo":"51º PREMIO EL CIERVO-ENRIQUE FERRÁN DE ARTÍCULOS PERIODÍSTICOS (España)","link":"https://www.escritores.org/recursos-para-escritores/42014-51-premio-el-ciervo-enrique-ferran-de-articulos-periodisticos","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Artículo","premio":"500 euros y publicación","premioValor":500},{"titulo":"7º PREMIO DE POESÍA LORENZO GOMIS (España)","link":"https://www.escritores.org/recursos-para-escritores/42015-7-premio-de-poesia-lorenzo-gomis","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Poesía","premio":"500 euros y publicación","premioValor":500},{"titulo":"XVIII CERTAMEN NACIONAL DE POESÍA \"CARMEN ARIAS\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42248-xviii-certamen-nacional-de-poesia-carmen-arias","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Poesía","premio":"1.500 euros","premioValor":1500},{"titulo":"CERTÁMENES 2026 DEL ATENEO LITERARIO DE ARTES Y DE CIENCIAS DE PUERTO REAL -  VI CONCURSO DE SONETOS \"HERNÁN DE USERO\" - VII PREMIO DE POESÍA “ROSA BUTLER” - X EDICIÓN DEL PREMIO  DE NOVELA ISAAC ASIMOV 2026 (España)","link":"https://www.escritores.org/recursos-para-escritores/42066-certamenes-2026-del-ateneo-literario-de-artes-y-de-ciencias-de-puerto-real-v-concurso-de-sonetos-hernan-de-usero-vii-premio-de-poesia-rosa-butler-x-edicion-del-premio-de-novela-isaac-asimov-2026","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Poesía y Novela","premio":"Placa acreditativa, diploma, publicación","premioValor":0},{"titulo":"VI PREMIO PLATTA DE TEATRO BREVE (España)","link":"https://www.escritores.org/recursos-para-escritores/42279-vi-premio-platta-de-teatro-breve","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Teatro","premio":"traducción y publicación de las tres obras ganadoras en las tres lenguas (portuguesa, castellana y gallega), en volúmenes independientes; en la asistencia a las lecturas dramatizadas en el lugar donde se celebren los festivales PLATTA; y en la entrega de un trofeo conmemorativo junto a 50 ejemplares de la obra publicada","premioValor":0},{"titulo":"XXI CERTAMEN LITERARIO \"MANUEL ORESTE RODÍGUEZ\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42175-xxi-certamen-literario-manuel-oreste-rodiguez","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Narrativa y Poesía","premio":"1.000 euros","premioValor":1000},{"titulo":"XX EDICIÓN DEL CERTAMEN LITERARIO «DE LA VIÑA Y EL VINO» (España)","link":"https://www.escritores.org/recursos-para-escritores/42186-xx-edicion-del-certamen-literario-de-la-vina-y-el-vino","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Poesía y Narrativa","premio":"1.200 euros y lote de vino","premioValor":1200},{"titulo":"VIII PREMIO INTERNACIONAL DE POESÍA JUAN REJANO - PUENTE GENIL 2026 (España)","link":"https://www.escritores.org/recursos-para-escritores/42240-viii-premio-internacional-de-poesia-juan-rejano-puente-genil-2026","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Poesía","premio":"3.000 euros, publicación y 25 ejemplares para el autor","premioValor":3000},{"titulo":"CONCURSO DE RELATOS DE MUJERES 2026 (España)","link":"https://www.escritores.org/recursos-para-escritores/42273-concurso-de-relatos-de-mujeres-2026","fecha":"30/11/2026","fechaISO":"2026-11-30","genero":"Relato","premio":"2.000 euros","premioValor":2000},{"titulo":"I CERTAMEN DE POESÍA JOVEN ABINDARRÁEZ VILLA DE CÁRTAMA (España)","link":"https://www.escritores.org/recursos-para-escritores/42209-i-certamen-de-poesia-joven-abindarraez-villa-de-cartama","fecha":"01/12/2026","fechaISO":"2026-12-01","genero":"Poesía","premio":"Publicación, 50 ejemplares para el autor","premioValor":0},{"titulo":"I CONVOCATORIA DE RELATOS «MERI CRISMAS» | NEXIOK (España)","link":"https://www.escritores.org/recursos-para-escritores/42282-i-convocatoria-de-relatos-meri-crismas-nexiok","fecha":"01/12/2026","fechaISO":"2026-12-01","genero":"Relato","premio":"entrevista individual, adaptación del relato a formato de audio y su publicación en Nexiok junto con la versión escrita","premioValor":0},{"titulo":"RESIDENCIA DE ESCRITORES MALBA 2027 (Argentina)","link":"https://www.escritores.org/recursos-para-escritores/42277-residencia-de-escritores-malba-2027","fecha":"01/12/2026","fechaISO":"2026-12-01","genero":"Beca - Residencia para escritores","premio":"Pasaje aéreo · Un departamento amueblado para su alojamiento y el desarrollo de sus actividades.· Un estipendio de U$S 500 destinado a colaborar con gastos diversos durante la duración del programa (5 semanas).· Seguro internacional de viajero durante toda su estadía","premioValor":0},{"titulo":"V CONCURSO NACIONAL DE POESÍAS Y MICRORRELATOS DEL CENTRO DE PARTICIPACIÓN ACTIVA PARA PERSONAS MAYORES ISLA CRISTINA (España)","link":"https://www.escritores.org/recursos-para-escritores/42223-v-concurso-nacional-de-poesias-y-microrrelatos-del-centro-de-participacion-activa-para-personas-mayores-isla-cristina","fecha":"01/12/2026","fechaISO":"2026-12-01","genero":"Poesía y microrrelato","premio":"Lote de productos de USISA y un diploma","premioValor":0},{"titulo":"I PREMIO NACIONAL DE THRILLER DOCUMENTAL (España)","link":"https://www.escritores.org/recursos-para-escritores/41960-i-premio-nacional-de-thriller-documental","fecha":"01/12/2026","fechaISO":"2026-12-01","genero":"Thriller Documental","premio":"Publicación. 350 euros en concepto de adelanto de regalías. Trofeo acreditativo","premioValor":0},{"titulo":"VIª EDICIÓN CONCURSO COR AD COR DE POESÍA (España)","link":"https://www.escritores.org/recursos-para-escritores/42185-vi-edicion-concurso-cor-ad-cor-de-poesia","fecha":"03/12/2026","fechaISO":"2026-12-03","genero":"Poesía","premio":"Cena en Navidad con el jurado. Tarjeta individual del Club Renoir que, además de incluir dos entradas gratuitas y una tercera por el cumpleaños, incluye la compra de entradas a precio reducido en todos los Cines Renoir, así como acceso exclusivo a sorteos para preestrenos y regalos de merchandising","premioValor":0},{"titulo":"III PREMIO INTERNACIONAL DE POESÍA «GONZALO DE BERCEO» (España)","link":"https://www.escritores.org/recursos-para-escritores/41991-iii-premio-internacional-de-poesia-gonzalo-de-berceo","fecha":"04/12/2026","fechaISO":"2026-12-04","genero":"Poesía","premio":"6.000 euros, publicación, 25 ejemplares para el autor","premioValor":6000},{"titulo":"CONCURSO LA IMAGEN ESCRITA (España)","link":"https://www.escritores.org/recursos-para-escritores/42239-concurso-la-imagen-escrita","fecha":"06/12/2026","fechaISO":"2026-12-06","genero":"Microrrelato","premio":"50 euros, un diploma, entradas para el auditorio Pilar Bardem de Rivas y publicación de la obra en la Página ER","premioValor":50},{"titulo":"PREMIO CLEMENCIA ISAURA DE POESÍA 2027 (México)","link":"https://www.escritores.org/recursos-para-escritores/42210-premio-clemencia-isaura-de-poesia-2027","fecha":"07/12/2026","fechaISO":"2026-12-07","genero":"Poesía","premio":"Flor Natural y 100.000 pesos M.N.","premioValor":100000},{"titulo":"VII PREMIO DE NOVELA HISTÓRICA ESCRITORES CON LA HISTORIA DE POZUELO DE ALARCÓN (España)","link":"https://www.escritores.org/recursos-para-escritores/42271-vii-premio-de-novela-historica-escritores-con-la-historia-de-pozuelo-de-alarcon","fecha":"08/12/2026","fechaISO":"2026-12-08","genero":"Novela histórica","premio":"4.000 euros","premioValor":4000},{"titulo":"PRIMER CONCURSO ENSAYO GRAN MARISCAL DE AYACUCHO (Venezuela)","link":"https://www.escritores.org/recursos-para-escritores/42055-primer-concurso-ensayo-gran-mariscal-de-ayacucho","fecha":"09/12/2026","fechaISO":"2026-12-09","genero":"Ensayo","premio":"500 euros","premioValor":500},{"titulo":"V CONCURSO DE RELATO BREVE SANT BOI NEGRE (España)","link":"https://www.escritores.org/recursos-para-escritores/41852-v-concurso-de-relato-breve-sant-boi-negre","fecha":"10/12/2026","fechaISO":"2026-12-10","genero":"Relato breve","premio":"300 euros, lote de libros, diploma","premioValor":300},{"titulo":"XXXIX CERTAMEN DE RELATO CORTO \"BIBLIOTECA PÚBLICA MUNICIPAL DE PILAS\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42225-xxxix-certamen-de-relato-corto-biblioteca-publica-municipal-de-pilas","fecha":"11/12/2026","fechaISO":"2026-12-11","genero":"Relato","premio":"1.000 euros","premioValor":1000},{"titulo":"XXXII CERTAMEN CARTAS DE AMOR “BIHOTZAREN HITZAK 2027\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42254-xxxii-certamen-cartas-de-amor-bihotzaren-hitzak-2027","fecha":"12/12/2026","fechaISO":"2026-12-12","genero":"Cartas de amor","premio":"550 euros y diploma","premioValor":550},{"titulo":"XIII CERTAMEN POÉTICO “MARGARITA PERUJO NEBRO” (España)","link":"https://www.escritores.org/recursos-para-escritores/42249-xiii-certamen-poetico-margarita-perujo-nebro","fecha":"13/12/2026","fechaISO":"2026-12-13","genero":"Poesía","premio":"300 euros","premioValor":300},{"titulo":"CONCURSO DE RELATOS NAVIDEÑOS DEL CLUB DE LECTURA CARLOTA (España)","link":"https://www.escritores.org/recursos-para-escritores/42235-concurso-de-relatos-navidenos-del-club-de-lectura-carlota","fecha":"14/12/2026","fechaISO":"2026-12-14","genero":"Cuento","premio":"Una estatuilla conmemorativa, una agenda personalizada del Club de Lectura Carlota, fos libros","premioValor":0},{"titulo":"XXVIII CERTAMEN DE CARTAS DE AMOR (España)","link":"https://www.escritores.org/recursos-para-escritores/42267-xxviii-certamen-de-cartas-de-amor","fecha":"14/12/2026","fechaISO":"2026-12-14","genero":"Carta","premio":"250 euros, trofeo y diploma","premioValor":250},{"titulo":"XVI CONCURSO LITERARIO DE RELATOS BREVES (España)","link":"https://www.escritores.org/recursos-para-escritores/42286-xvi-concurso-literario-de-relatos-breves","fecha":"15/12/2026","fechaISO":"2026-12-15","genero":"Relato breve","premio":"500 euros","premioValor":500},{"titulo":"V CERTAMEN DE RELATO Y CUENTO LITERARIA KALEAN (España)","link":"https://www.escritores.org/recursos-para-escritores/42002-v-certamen-de-relato-y-cuento-literaria-kalean","fecha":"15/12/2026","fechaISO":"2026-12-15","genero":"Cuento, Relato","premio":"Viaje en globo y publicación","premioValor":0},{"titulo":"IV CONCURSO DE HAIKUS DE L'ASSOCIACIÓ CULTURAL EL CERCLE (España)","link":"https://www.escritores.org/recursos-para-escritores/42231-iv-concurso-de-haikus-de-l-associacio-cultural-el-cercle","fecha":"15/12/2026","fechaISO":"2026-12-15","genero":"Haiku","premio":"marco de cristal con la inscripción del haiku ganador, una lámina estilo japones y una pluma estilográfica, con la inscripción de su nombre","premioValor":0},{"titulo":"XI CERTAMEN DE POESÍA SOCIAL CIUDAD DE ALGECIRAS “JULIA GUERRA” (España)","link":"https://www.escritores.org/recursos-para-escritores/42145-xi-certamen-de-poesia-social-ciudad-de-algeciras-julia-guerra","fecha":"15/12/2026","fechaISO":"2026-12-15","genero":"Poesía","premio":"300 euros y diploma","premioValor":300},{"titulo":"VIII CONCURSO DE RELATOS CORTOS “LA ILUSTRE FREGONA” DE ZAHARA DE LOS ATUNES (España)","link":"https://www.escritores.org/recursos-para-escritores/42032-viii-concurso-de-relatos-cortos-la-ilustre-fregona-de-zahara-de-los-atunes","fecha":"15/12/2026","fechaISO":"2026-12-15","genero":"Relato corto","premio":"300 euros y placa","premioValor":300},{"titulo":"XIII CONCURSO INTERNACIONAL DE POESÍA DE ZAHARA DE LOS ATUNES 2026 (España)","link":"https://www.escritores.org/recursos-para-escritores/42033-xiii-concurso-internacional-de-poesia-de-zahara-de-los-atunes-2026","fecha":"15/12/2026","fechaISO":"2026-12-15","genero":"Poesía","premio":"300 euros y placa","premioValor":300},{"titulo":"PREMIO PROVINCIAL DE NARRATIVA \"ALCIDES GRECA\" 2026 (Argentina)","link":"https://www.escritores.org/recursos-para-escritores/42296-premio-provincial-de-narrativa-alcides-greca-2026","fecha":"16/12/2026","fechaISO":"2026-12-16","genero":"Narrativa, en las categorías obras editadas y obras inéditas","premio":"un millón quinientos mil pesos ($ 1.500.000","premioValor":1500000},{"titulo":"XIV CONCURSO MICRORRELATOS LENTEJA DE TIERRA DE CAMPOS (España)","link":"https://www.escritores.org/recursos-para-escritores/42268-xiv-concurso-microrrelatos-lenteja-de-tierra-de-campos","fecha":"17/12/2026","fechaISO":"2026-12-17","genero":"Microrrelato","premio":"300 euros + lote","premioValor":300},{"titulo":"XXIII CERTAMEN DE RELATO BREVE \"GERALD BRENAN\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42301-xxiii-certamen-de-relato-breve-gerald-brenan","fecha":"18/12/2026","fechaISO":"2026-12-18","genero":"Relato breve","premio":"3.000 euros, publicación, 50 ejemplares","premioValor":3000},{"titulo":"III CERTAMEN DE RELATOS CORTOS “JOSÉ MANUEL LUQUE PITA” (España)","link":"https://www.escritores.org/recursos-para-escritores/42204-iii-certamen-de-relatos-cortos-jose-manuel-luque-pita","fecha":"20/12/2026","fechaISO":"2026-12-20","genero":"Relato corto","premio":"Kit de productos y artículos de la tienda de la Desbandá. • Camiseta oficial. • Camiseta de la XI Marcha","premioValor":0},{"titulo":"CONCURSO LITERARIO DEL AYUNTAMIENTO DE LASARTE-ORIA 2026 (España)","link":"https://www.escritores.org/recursos-para-escritores/42243-concurso-literario-del-ayuntamiento-de-lasarte-oria-2026","fecha":"22/12/2026","fechaISO":"2026-12-22","genero":"Poesía y micxrorrelato","premio":"650 euros y diploma","premioValor":650},{"titulo":"II PREMIO INTERNACIONAL DE NOVELA BREVE ALMADÍA-VENTOSA ARRUFAT (España)","link":"https://www.escritores.org/recursos-para-escritores/42300-ii-premio-internacional-de-novela-breve-almadia-ventosa-arrufat","fecha":"22/12/2027","fechaISO":"2027-12-22","genero":"Novela breve","premio":"20.000 euros y publicación","premioValor":20000},{"titulo":"V PREMIO DE LITERATURA DIVERSA EDITORIAL SIETE ISLAS (España)","link":"https://www.escritores.org/recursos-para-escritores/42275-v-premio-de-literatura-diversa-editorial-siete-islas","fecha":"26/12/2026","fechaISO":"2026-12-26","genero":"Novela","premio":"1) Contrato de edición con Editorial siete islas. 2) Premio de 500 EUROS conforme a lo dispuesto en la normativa fiscal aplicable. 3) Billetes de avión y estancia en Gran Canaria para asistir al Maspalomas Pride Freedom con un acompañante, donde presentará la obra dentro de las actividades culturales del Orgullo y se le hará entrega del premio en el escenario principal en la Gala del Maspalomas Pride Freedom. 4) Presentación de la obra ganadora en el Orgullo de Madrid dentro del programa de eventos culturales del Festival Cultural de Madrid Orgullo, Muestra t. 5) Artículo en la revista Shangay. 6) Estancia, de un fin de semana, para dos personas, según disponibilidad, en régimen de alojamiento y desayuno en el hotel de Ritual Hoteles que elija","premioValor":1},{"titulo":"XXV CONCURSO DE POESÍA TEMA: “LA MUJER” (España)","link":"https://www.escritores.org/recursos-para-escritores/42285-xxv-concurso-de-poesia-tema-la-mujer","fecha":"28/12/2026","fechaISO":"2026-12-28","genero":"Poesía","premio":"250 euros","premioValor":250},{"titulo":"XLI PREMIO INTERNACIONAL DE CUENTOS MAX AUB 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42262-xli-premio-internacional-de-cuentos-max-aub-2027","fecha":"29/12/2026","fechaISO":"2026-12-29","genero":"Cuento","premio":"6.000 euros y edición","premioValor":6000},{"titulo":"VII PREMIO DE INVESTIGACIÓN HISTÓRICA (España)","link":"https://www.escritores.org/recursos-para-escritores/41869-vii-premio-de-investigacion-historica","fecha":"30/12/2026","fechaISO":"2026-12-30","genero":"Investigación","premio":"1.500 euros y publicación","premioValor":1500},{"titulo":"XI CERTAMEN DE RELATOS DE LA FUNDACIÓN PINTOR JULIO VISCONTI (España)","link":"https://www.escritores.org/recursos-para-escritores/42147-xi-certamen-de-relatos-de-la-fundacion-pintor-julio-visconti","fecha":"30/12/2026","fechaISO":"2026-12-30","genero":"Relato","premio":"900 euros y diploma","premioValor":900},{"titulo":"VII PREMIO INTERNACIONAL DE POESÍA JOVEN JOSÉ ANTONIO SANTONO (España)","link":"https://www.escritores.org/recursos-para-escritores/42059-vii-premio-internacional-de-poesia-joven-jose-antonio-santono","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Poesía","premio":"escultura, la edición de la obra, de la cual uno de los poemas será traducido a varios idiomas, y 100 ejemplares","premioValor":0},{"titulo":"CERTAMEN INTERNACIONAL DE LITERATURA DE HUMOR \"LA FLOR DEL CACTUS\" 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42064-certamen-internacional-de-literatura-de-humor-la-flor-del-cactus-2027","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Narrativa y Poesía","premio":"3.000 euros","premioValor":3000},{"titulo":"48º PREMIO INTERNACIONAL DE POESÍA JOVEN \"ARCIPESTRE DE HITA\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42160-48-premio-internacional-de-poesia-joven-arcipestre-de-hita","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Poesía","premio":"Publicación de 1.000 ejemplares, 50 para el autor","premioValor":1000},{"titulo":"X CONCURSO NARRATIVA BREVE “CASA DE CÓRDOBA EN MADRID” 2026 (España)","link":"https://www.escritores.org/recursos-para-escritores/42202-x-concurso-narrativa-breve-casa-de-cordoba-en-madrid-2026","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Narrativa breve","premio":"300 euros y placa conmemorativa","premioValor":300},{"titulo":"CERTAMEN LITERARIO ASOCIACIÓN DESARROLLO AUTISMO ALBACETE (España) (España)","link":"https://www.escritores.org/recursos-para-escritores/42208-certamen-literario-asociacion-desarrollo-autismo-albacete","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Relato","premio":"Entrega de 100€. • Estancia de una noche para dos personas en “La Posada de Chinchilla”, situada en el precioso municipio de Chinchilla de Aragón (Albacete). • Ilustración inspirada en el relato ganador, creada y donada por Asociación Artes Plásticas de Albacete. • El ganador podrá venir a conocer nuestra Asociación y nuestro trabajo, en alguno de los servicios que se desarrollen y no condicione su funcionamiento","premioValor":100},{"titulo":"XXV PREMIO DE TEATRO JOSÉ MARTÍN RECUERDA (España)","link":"https://www.escritores.org/recursos-para-escritores/42266-xxv-premio-de-teatro-jose-martin-recuerda","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Teatro","premio":"1.500 euros","premioValor":1500},{"titulo":"IV CONCURSO LITERARIO DE TERROR «BERENICE» 2027 (Cuba)","link":"https://www.escritores.org/recursos-para-escritores/42270-iv-concurso-literario-de-terror-berenice-2027","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Cuento","premio":"20 000 CUP y diploma","premioValor":20},{"titulo":"XXII PREMIO «ÁGUILA DE POESÍA» (España)","link":"https://www.escritores.org/recursos-para-escritores/42288-xxii-premio-aguila-de-poesia","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Poesía","premio":"Publicación. El autor o autora recibirá una quinta parte de los ejemplares editados.","premioValor":0},{"titulo":"XLVIII EDICIÓN JUEGOS FLORALES 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42294-xlviii-edicion-juegos-florales-2027","fecha":"31/12/2026","fechaISO":"2026-12-31","genero":"Poesía","premio":"500 euros","premioValor":500},{"titulo":"CONCURSO LITERARIO NACIONAL BENIGNO VÁZQUEZ - LOS ARABOS 2027 (Cuba)","link":"https://www.escritores.org/recursos-para-escritores/42217-concurso-literario-nacional-benigno-vazquez-los-arabos-2027","fecha":"05/01/2027","fechaISO":"2027-01-05","genero":"Poesía, Cuento, Ensayo...","premio":"$ 2000.00 M.N","premioValor":200000},{"titulo":"PRIMERA CONVOCATORIA FICCIÓN SONORA 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42306-primera-convocatoria-ficcion-sonora-2027","fecha":"07/01/2027","fechaISO":"2027-01-07","genero":"Dramaturgía","premio":"Las piezas integrarán una compilación de dramaturgia de la Comunitat Valenciana, presentada como serie de ficción sonora del programa Emergentes","premioValor":0},{"titulo":"XXXIII PREMIO INTERNACIONAL DE ENSAYO JOVELLANOS (España)","link":"https://www.escritores.org/recursos-para-escritores/41712-xxxiii-premio-internacional-de-ensayo-jovellanos","fecha":"08/01/2027","fechaISO":"2027-01-08","genero":"Ensayo","premio":"9.000 euros, diploma, publicación","premioValor":9000},{"titulo":"11ª EDICIÓN PREMIO FELL GOOD ™ (España)","link":"https://www.escritores.org/recursos-para-escritores/42283-11-edicion-premio-fell-good","fecha":"08/01/2027","fechaISO":"2027-01-08","genero":"obras de ficción, autoficción y no ficción","premio":"3.000 euros, publicación","premioValor":3000},{"titulo":"PREMIO “JUAN VALERA” 2027 – NOVELA (España)","link":"https://www.escritores.org/recursos-para-escritores/42241-premio-juan-valera-2027-novela","fecha":"08/01/2027","fechaISO":"2027-01-08","genero":"Novela","premio":"600 euros y publicación. Le corresponderá al autor de la novela ganadora el 15 % del total de 250 volúmenes publicados","premioValor":600},{"titulo":"XIV PREMIO INTERNACIONAL DE POESÍA JOVELLANOS, EL MEJOR POEMA DEL MUNDO (España)","link":"https://www.escritores.org/recursos-para-escritores/41713-xiv-premio-internacional-de-poesia-jovellanos-el-mejor-poema-del-mundo","fecha":"08/01/2027","fechaISO":"2027-01-08","genero":"Poesía","premio":"2.000 euros, diploma, publicación","premioValor":2000},{"titulo":"PREMIOS DE LA CIUDAD DE HOLGUÍN 2027 (Cuba)","link":"https://www.escritores.org/recursos-para-escritores/42278-premios-de-la-ciudad-de-holguin-2027","fecha":"11/01/2027","fechaISO":"2027-01-11","genero":"Poesía y Narrativa","premio":"6000 pesos moneda nacional, una reproducción del Cemí Baibrama y diploma acreditativo","premioValor":6000},{"titulo":"25 CONCURSO CUENTOS INFANTILES SIN FRONTERAS (España)","link":"https://www.escritores.org/recursos-para-escritores/42290-25-concurso-cuentos-infantiles-sin-fronteras","fecha":"11/01/2027","fechaISO":"2027-01-11","genero":"Cuento Infantil","premio":"Edición y 24 ejemplares del libro","premioValor":24},{"titulo":"8o CERTAMEN LITERARIO PAPALLONES LILES (España)","link":"https://www.escritores.org/recursos-para-escritores/42224-8o-certamen-literario-papallones-liles","fecha":"15/01/2027","fechaISO":"2027-01-15","genero":"Narrativa corta","premio":"300 euros","premioValor":300},{"titulo":"CERTAMEN DE POESÍA “VILLA DE LA ZUBIA” 2027","link":"https://www.escritores.org/recursos-para-escritores/42291-certamen-de-poesia-villa-de-la-zubia-2027","fecha":"15/01/2027","fechaISO":"2027-01-15","genero":"Poesía","premio":"1.500 euros, publicación y 20 ejemplares de la obra","premioValor":1500},{"titulo":"PREMIO IBEROAMERICANO ANTONIO SKÁRMETA UNIVERSIDAD DE CHILE 2026 (Chile)","link":"https://www.escritores.org/recursos-para-escritores/42276-premio-iberoamericano-antonio-skarmeta-universidad-de-chile-2026","fecha":"15/01/2027","fechaISO":"2027-01-15","genero":"Narrativa (obra publicada)","premio":"10.000 dólares y un diploma de reconocimiento","premioValor":10000},{"titulo":"I PREMIO INTERNACIONAL DE POESÍA “CANTOS DEL OLIVAR” (España)","link":"https://www.escritores.org/recursos-para-escritores/42250-i-premio-internacional-de-poesia-cantos-del-olivar","fecha":"15/01/2027","fechaISO":"2027-01-15","genero":"Poesía","premio":"Publicación. Dotación de aove para todo un año: Aceite de Oliva Virgen Extra Ayozar. Dotación económica de quinientos euros (500 €","premioValor":0},{"titulo":"VI PREMIO INTERNACIONAL DE POESÍA DOLORS ALBEROLA (España)","link":"https://www.escritores.org/recursos-para-escritores/42228-vi-premio-internacional-de-poesia-dolors-alberola","fecha":"15/01/2027","fechaISO":"2027-01-15","genero":"Poesía","premio":"Traducción del libro a un idioma diferente. Publicación del libro en edición bilingüe, sin cargos. 50 ejemplares del libro publicado. Los derechos correspondientes por la comercialización de su obra","premioValor":0},{"titulo":"I CONCURSO NACIONAL DE RELATOS INFANTIANOS DE ISLA CRISTINA (España)","link":"https://www.escritores.org/recursos-para-escritores/42309-i-concurso-nacional-de-relatos-infantianos-de-isla-cristina","fecha":"15/01/2027","fechaISO":"2027-01-15","genero":"Relato","premio":"Fin de semana con desayuno incluido en Isla Cristina para dos personas. Se podrá hacer uso del premio hasta 31 de diciembre 2027 y siempre sujetos a condiciones de disponibilidad del hotel. Cena para dos personas. Placa. Lote de libros relacionados con el patrimonio y cultura de Isla Cristina","premioValor":0},{"titulo":"IV PREMIO DE RELATO BREVE DON CARLOS DE SESO (España)","link":"https://www.escritores.org/recursos-para-escritores/42237-iv-premio-de-relato-breve-don-carlos-de-seso","fecha":"17/01/2027","fechaISO":"2027-01-17","genero":"Relato breve","premio":"500 euros, edición y 15 ejemplares para el autor","premioValor":500},{"titulo":"XXVII PREMIO INTERNACIONAL DE POESÍA ANDRÉS GARCÍA MADRID (España)","link":"https://www.escritores.org/recursos-para-escritores/42245-xxvii-premio-internacional-de-poesia-andres-garcia-madrid","fecha":"18/01/2027","fechaISO":"2027-01-18","genero":"Poesía","premio":"500 euros","premioValor":500},{"titulo":"VIGÉSIMO PREMIO FERNÁN CABALLERO DE RELATO CORTO (España)","link":"https://www.escritores.org/recursos-para-escritores/42298-vigesimo-premio-fernan-caballero-de-relato-corto","fecha":"20/01/2027","fechaISO":"2027-01-20","genero":"Relato corto","premio":"500€ en metálico, para el autor, y de 1.000€, en material bibliográfico y","premioValor":500},{"titulo":"III CONCURSO LITERARIO DE RELATOS BREVES Y DE POESÍA “ESCRITORES DEL BARRIO” AEFEP (España)","link":"https://www.escritores.org/recursos-para-escritores/42149-iii-concurso-literario-de-relatos-breves-y-de-poesia-escritores-del-barrio-aefep","fecha":"20/01/2027","fechaISO":"2027-01-20","genero":"Poesía y Relato","premio":"Placa conmemorativa y cheque regalo por valor de 100 €","premioValor":100},{"titulo":"XV CERTAMEN LITERARIO DE LA BIBLIOTECA UNIVERSITARIA DE GRANADA (España)","link":"https://www.escritores.org/recursos-para-escritores/42265-xv-certamen-literario-de-la-biblioteca-universitaria-de-granada","fecha":"25/01/2027","fechaISO":"2027-01-25","genero":"Relato corto","premio":"1.500 euros","premioValor":1500},{"titulo":"XVI CONCURSO DE POESÍA Y RELATO GRANAJOVEN 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42299-xvi-concurso-de-poesia-y-relato-granajoven-2027","fecha":"26/01/2027","fechaISO":"2027-01-26","genero":"Poesía y Relato","premio":"1.500 euros","premioValor":1500},{"titulo":"LII CERTAMEN LITERARIO MARÍA AGUSTINA (España)","link":"https://www.escritores.org/recursos-para-escritores/42284-lii-certamen-literario-maria-agustina","fecha":"28/01/2027","fechaISO":"2027-01-28","genero":"Narración corta, Poesía","premio":"1.500 euros","premioValor":1500},{"titulo":"LII PREMIO CÁCERES DE NOVELA CORTA 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42292-lii-premio-caceres-de-novela-corta-2027","fecha":"29/01/2027","fechaISO":"2027-01-29","genero":"Novela corta","premio":"9.000 euros y publicación","premioValor":9000},{"titulo":"XXXVII PREMIO CIUDAD DE CORIA DE CUENTOS 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42305-xxxvii-premio-ciudad-de-coria-de-cuentos-2027","fecha":"29/01/2027","fechaISO":"2027-01-29","genero":"Cuento","premio":"3.000 euros","premioValor":3000},{"titulo":"XXX PREMIO FLOR DE JARA DE POESÍA 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42304-xxx-premio-flor-de-jara-de-poesia-2027","fecha":"29/01/2027","fechaISO":"2027-01-29","genero":"Poesía","premio":"6.000 euros","premioValor":6000},{"titulo":"III CONCURSO DE MICROTEATRO DEL CASINO 17 DE GENER DE CIUTADELLA DE MENORCA (España)","link":"https://www.escritores.org/recursos-para-escritores/42230-iii-concurso-de-microteatro-del-casino-17-de-gener-de-ciutadella-de-menorca","fecha":"30/01/2027","fechaISO":"2027-01-30","genero":"Teatro","premio":"1.000 euros y representación","premioValor":1000},{"titulo":"XII CERTAMEN LITERARIO \"UNIVERSIDAD POPULAR DE ALMANSA\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42293-xii-certamen-literario-universidad-popular-de-almansa","fecha":"30/01/2027","fechaISO":"2027-01-30","genero":"Relato breve y Poesía","premio":"300 euros","premioValor":300},{"titulo":"VIII PREMIO DE POESÍA VISUAL “PAQUI JIMÉNEZ YEPES” (España)","link":"https://www.escritores.org/recursos-para-escritores/42102-viii-premio-de-poesia-visual-paqui-jimenez-yepes","fecha":"31/01/2027","fechaISO":"2027-01-31","genero":"Poesía","premio":"Trofeo y diploma","premioValor":0},{"titulo":"XXXVª EDICIÓN DEL PREMIO JUAN MARCH CENCILLO DE NOVELA BREVE (España)","link":"https://www.escritores.org/recursos-para-escritores/42198-xxxv-edicion-del-premio-juan-march-cencillo-de-novela-breve","fecha":"31/01/2027","fechaISO":"2027-01-31","genero":"Novela breve","premio":"12.000 euros y publicación","premioValor":12000},{"titulo":"III EDICIÓN PREMIOS DE LITERATURA PUY DU FOU ESPAÑA (España)","link":"https://www.escritores.org/recursos-para-escritores/42234-iii-edicion-premios-de-literatura-puy-du-fou-espana","fecha":"31/01/2027","fechaISO":"2027-01-31","genero":"Relato","premio":"10.000 euros, publicación","premioValor":10000},{"titulo":"XXXVII CERTAMEN LITERARIO \"VILLA DE INIESTA\" 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42269-xxxvii-certamen-literario-villa-de-iniesta-2027","fecha":"31/01/2027","fechaISO":"2027-01-31","genero":"Cuento y Poesía","premio":"850 euros y diploma","premioValor":850},{"titulo":"17º CERTAMEN \"PICAPEDREROS\" DE POESÍA, GUION (SKETCH) Y MICRORRELATO (España)","link":"https://www.escritores.org/recursos-para-escritores/42289-17-certamen-picapedreros-de-poesia-guion-sketch-y-microrrelato","fecha":"31/01/2027","fechaISO":"2027-01-31","genero":"Poesía, Guion (Sketch) y Microrrelato","premio":"Diploma. Publicación","premioValor":0},{"titulo":"IV PREMIO INTERNACIONAL DE NOVELA CORTA FRANCISCO AYALA (España)","link":"https://www.escritores.org/recursos-para-escritores/42295-iv-premio-internacional-de-novela-corta-francisco-ayala","fecha":"31/01/2027","fechaISO":"2027-01-31","genero":"Novela corta","premio":"6.000 euros. Publicación","premioValor":6000},{"titulo":"XXVIII PREMIO DE NARRACIÓN BREVE “DE BUENA FUENTE” (España)","link":"https://www.escritores.org/recursos-para-escritores/42307-xxviii-premio-de-narracion-breve-de-buena-fuente","fecha":"31/01/2027","fechaISO":"2027-01-31","genero":"Narración breve","premio":"3.000 euros. Publicación","premioValor":3000},{"titulo":"XVIII CONCURSO DE CIENCIA FICCIÓN Y FANTASÍA OSCAR HURTADO 2027 (Cuba)","link":"https://www.escritores.org/recursos-para-escritores/42021-xviii-concurso-de-ciencia-ficcion-y-fantasia-oscar-hurtado-2027","fecha":"14/02/2027","fechaISO":"2027-02-14","genero":"Cuento, Poesía","premio":"2000 CUP y diploma por categoría","premioValor":2000},{"titulo":"VII CERTAMEN POÉTICO INTERNACIONAL \"ESTROFA JULIA\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42281-vii-certamen-poetico-internacional-estrofa-julia","fecha":"14/02/2027","fechaISO":"2027-02-14","genero":"Poesía","premio":"200 euros y diploma","premioValor":200},{"titulo":"VII CONCURSO DE NOVELA VILLA DE LOS BARRIOS (España)","link":"https://www.escritores.org/recursos-para-escritores/42061-vii-concurso-de-novela-villa-de-los-barrios","fecha":"15/02/2027","fechaISO":"2027-02-15","genero":"Novela","premio":"edición de 100 ejemplares, que se entregarán a su autor","premioValor":100},{"titulo":"CONCURSO INTERNACIONAL DE RELATOS CORTOS “PRIX HEMINGWAY” (Francia)","link":"https://www.escritores.org/recursos-para-escritores/42110-concurso-internacional-de-relatos-cortos-prix-hemingway","fecha":"15/02/2027","fechaISO":"2027-02-15","genero":"Relato corto","premio":"Dos mil euros (2.000 €), pase de callejón en la plaza de toros de Nimes, publicación, estancia en residencia de escritura en la Camarga francesa","premioValor":2000},{"titulo":"10.ª EDICIÓN DEL CONCURSO NOVELA CORTA \"RAMIRO PINILLA\" (España)","link":"https://www.escritores.org/recursos-para-escritores/42251-10-edicion-del-concurso-novela-corta-ramiro-pinilla","fecha":"20/02/2027","fechaISO":"2027-02-20","genero":"Novela corta","premio":"6.300 €, figura conmemorativa y credencial emitida por la Alcaldía","premioValor":6300},{"titulo":"XLVII PREMIO DIONISIO ACEDO DE PERIODISMO 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42303-xlvii-premio-dionisio-acedo-de-periodismo-2027","fecha":"19/02/2027","fechaISO":"2027-02-19","genero":"Periodismo","premio":"3.000 euros","premioValor":3000},{"titulo":"IV PREMIO DE ÁLBUM ILUSTRADO DE FANTASIA Y CIENCIA FICCIÓN ELIA BARCELÓ (España)","link":"https://www.escritores.org/recursos-para-escritores/41848-iv-premio-de-album-ilustrado-de-fantasia-y-ciencia-ficcion-elia-barcelo","fecha":"26/02/2027","fechaISO":"2027-02-26","genero":"Álbum Ilustrado","premio":"3.200 euros","premioValor":3200},{"titulo":"2n CERTAMEN ANUAL DE MICRO TEATRE VILA DE VERDÚ 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/41992-2n-certamen-anual-de-micro-teatre-vila-de-verdu-2027","fecha":"28/02/2027","fechaISO":"2027-02-28","genero":"Teatro","premio":"300 euros","premioValor":300},{"titulo":"XXIX CONCURSO DE RELATO CORTO ELENA SORIANO (España)","link":"https://www.escritores.org/recursos-para-escritores/42308-xxix-concurso-de-relato-corto-elena-soriano","fecha":"28/02/2027","fechaISO":"2027-02-28","genero":"Relato corto","premio":"3.000 euros","premioValor":3000},{"titulo":"CONCURSO LITERARIO \"LA FELGUERA\" 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42287-concurso-literario-la-felguera-2027","fecha":"28/02/2027","fechaISO":"2027-02-28","genero":"Relato corto","premio":"4.000 euros","premioValor":4000},{"titulo":"XIII CERTAMEN INTERNACIONAL DE MICRORRELATOS JAVIER TOMEO  DE TEMÁTICA SOCIAL -2026-2027- ALCAÑIZ (España)","link":"https://www.escritores.org/recursos-para-escritores/42063-xiii-certamen-internacional-de-microrrelatos-javier-tomeo-de-tematica-social-2026-2027-alcaniz","fecha":"28/02/2027","fechaISO":"2027-02-28","genero":"Microrrelato","premio":"200 Euros y diploma acreditativo","premioValor":200},{"titulo":"XXII PREMIO DE NOVELA \"CAROLINA COLORADO\" CIUDAD DE ALMENDRALEJO 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42247-xxii-premio-de-novela-carolina-colorado-ciudad-de-almendralejo-2027","fecha":"28/02/2027","fechaISO":"2027-02-28","genero":"Novela","premio":"8.000 euros","premioValor":8000},{"titulo":"VI CERTAMEN DE NOVELA CORTA “PUEBLO DE BOBADILLA” (España)","link":"https://www.escritores.org/recursos-para-escritores/42260-vi-certamen-de-novela-corta-pueblo-de-bobadilla","fecha":"01/03/2027","fechaISO":"2027-03-01","genero":"Novela corta","premio":"publicación de la obra. Dicha publicación constará de una tirada no menor a 500 ejemplares, de los cuales 200 se entregarán al autor ganador del certamen","premioValor":0},{"titulo":"CERTAMEN LITERARIO CBJSE SOBRE EL CENTENARIO DE LA BOTADURA DEL BUQUE ESCUELA JUAN SEBASTIÁN ELCANO (España)","link":"https://www.escritores.org/recursos-para-escritores/42100-certamen-literario-cbjse-sobre-el-centenario-de-la-botadura-del-buque-escuela-juan-sebastian-elcano","fecha":"05/03/2027","fechaISO":"2027-03-05","genero":"Relato corto y Microrrelato con temática Centenario del Juan Sebastián de Elcano","premio":"500 euros, trofeo y diploma","premioValor":500},{"titulo":"IX PREMIO DE POESÍA “FACULTAD DE FILOLOGÍA. UNED” (España)","link":"https://www.escritores.org/recursos-para-escritores/42253-ix-premio-de-poesia-facultad-de-filologia-uned","fecha":"15/03/2027","fechaISO":"2027-03-15","genero":"Poesía","premio":"1.000 euros","premioValor":1000},{"titulo":"II CONCURSO LITERARIO VOCES DEL INSOMNIO (España)","link":"https://www.escritores.org/recursos-para-escritores/42302-ii-concurso-literario-voces-del-insomnio","fecha":"15/03/2027","fechaISO":"2027-03-15","genero":"Narrativa, Artículo","premio":"Publicación","premioValor":0},{"titulo":"CONCURSO DE NOVELA KÁLATHOS EDICIONES (España)","link":"https://www.escritores.org/recursos-para-escritores/42297-concurso-de-novela-kalathos-ediciones","fecha":"31/03/2027","fechaISO":"2027-03-31","genero":"Novela","premio":"publicación de la obra y presentación en la Feria del Libro","premioValor":0},{"titulo":"CERTAMEN NACIONAL DE POESÍA \"MAXI BANEGAS\" 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42219-certamen-nacional-de-poesia-maxi-banegas-2027","fecha":"15/04/2027","fechaISO":"2027-04-15","genero":"Poesía","premio":"1.100 euros y placa acreditativa","premioValor":1100},{"titulo":"LVI EDICIÓN DE LOS JUEGOS FLORALES A LA SANTÍSIMA VERA CRUZ (España)","link":"https://www.escritores.org/recursos-para-escritores/42138-lvi-edicion-de-los-juegos-florales-a-la-santisima-vera-cruz","fecha":"16/04/2027","fechaISO":"2027-04-16","genero":"Poesía","premio":"1.500 euros y flor natural","premioValor":1500},{"titulo":"I CONCURSO LITERARIO  ‘QUIJOTE MÜNCHHAUSEN IA’ (PARA OBRAS GENERADAS MEDIANTE INTELIGENCIA ARTIFICIAL) (España)","link":"https://www.escritores.org/recursos-para-escritores/42244-i-concurso-literario-quijote-muenchhausen-ia-para-obras-generadas-mediante-inteligencia-artificial","fecha":"23/04/2027","fechaISO":"2027-04-23","genero":"Novela corta","premio":"Publicación. El ganador recibirá 28 ejemplares de la obra publicada. Diploma. Pernoctará en un hotel con encanto y asistirá a una ruta turística guiada por el entramado misterioso de la ciudad de Toledo","premioValor":0},{"titulo":"III PREMIO DE ENSAYO ¿ES POSIBLE? UTOPÍAS QUE CABEN EN EL BOE (España)","link":"https://www.escritores.org/recursos-para-escritores/42256-iii-premio-de-ensayo-es-posible-utopias-que-caben-en-el-boe","fecha":"30/04/2027","fechaISO":"2027-04-30","genero":"Ensayo","premio":"4.500 euros. Publicación","premioValor":4500},{"titulo":"VI EDICIÓN DEL CERTAMEN LITERARIO NACIONAL ROSALÍA SALA VALLEJO (España)","link":"https://www.escritores.org/recursos-para-escritores/42259-vi-edicion-del-certamen-literario-nacional-rosalia-sala-vallejo","fecha":"30/04/2027","fechaISO":"2027-04-30","genero":"Narraciones cortas o ensayos","premio":"1.000 euros, diploma, publicación","premioValor":1000},{"titulo":"III CONCURSO DE RELATOS CORTOS “ESTACIÓN INTERNACIONAL DE CANFRANC” 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42261-iii-concurso-de-relatos-cortos-estacion-internacional-de-canfranc-2027","fecha":"30/04/2027","fechaISO":"2027-04-30","genero":"Relato corto","premio":"Una estancia con desayuno, de una noche y para dos personas, en el Royal Hideaway Hotel de la estación de Canfranc","premioValor":0},{"titulo":"PREMIO «ENSAYO CASA ÁFRICA» 2027 (España)","link":"https://www.escritores.org/recursos-para-escritores/42252-premio-ensayo-casa-africa-2027","fecha":"02/05/2027","fechaISO":"2027-05-02","genero":"Ensayo","premio":"3.000 euros","premioValor":3000},{"titulo":"32.º CERTAMEN DE CÓMIC, MANGA E ILUSTRACIÓN «MUTANTES PASEANTES» (España)","link":"https://www.escritores.org/recursos-para-escritores/42258-32-certamen-de-comic-manga-e-ilustracion-mutantes-paseantes","fecha":"28/05/2027","fechaISO":"2027-05-28","genero":"Cómic, Manga, Ilustración","premio":"600 euros","premioValor":600},{"titulo":"XXIX EDICIÓN DEL PREMIO DESNIVEL DE LITERATURA DE MONTAÑA, VIAJES Y AVENTURAS (España)","link":"https://www.escritores.org/recursos-para-escritores/42274-xxix-edicion-del-premio-desnivel-de-literatura-de-montana-viajes-y-aventuras","fecha":"15/06/2027","fechaISO":"2027-06-15","genero":"obras narrativas o ensayísticas","premio":"3.000 euros y publicación","premioValor":3000},{"titulo":"III EDICIÓN DEL PREMIO DE NOVELA CORTA DE CIENCIA FICCIÓN Y FANTASÍA - PEDRO CARBONELL CASTILLER (España)","link":"https://www.escritores.org/recursos-para-escritores/42195-iii-edicion-del-premio-de-novela-corta-de-ciencia-ficcion-y-fantasia-pedro-carbonell-castiller","fecha":"31/08/2027","fechaISO":"2027-08-31","genero":"Novela corta","premio":"1.000 euros y publicación","premioValor":1000}];
+const DEFAULTS = {
+  title: '(España)',
+  fechaDesde: '2026-06-01',
+  generos: ['narrativa', 'relato', 'microrrelato', 'cuento', 'novela'],
+  sort: 'premio-desc',
+};
+const EXTRA_GENRES = ['poesía', 'ensayo', 'teatro', 'biografía', 'crónica', 'periodismo', 'infantil', 'juvenil'];
+const GENRE_OPTS = [...new Set([...DEFAULTS.generos, ...EXTRA_GENRES])];
+
+let state = { ...DEFAULTS, generos: [...DEFAULTS.generos] };
+
+const $ = id => document.getElementById(id);
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return d + '/' + m + '/' + y;
+}
+
+function sortLabel(s) {
+  return ({
+    'premio-desc': '💰 Premio ↓',
+    'premio-asc': '💰 Premio ↑',
+    'fecha-asc': '📅 Fecha ↑',
+    'fecha-desc': '📅 Fecha ↓',
+  })[s] || s;
+}
+
+function applyFilters() {
+  return DATA.filter(c => {
+    if (state.title) {
+      const needle = state.title.toLowerCase();
+      if (!c.titulo.toLowerCase().includes(needle)) return false;
+    }
+    if (state.fechaDesde && c.fechaISO < state.fechaDesde) return false;
+    if (state.generos.length > 0) {
+      const g = (c.genero || '').toLowerCase();
+      if (!state.generos.some(x => g.includes(x.toLowerCase()))) return false;
+    }
+    return true;
+  });
+}
+
+function sortItems(items) {
+  return items.sort((a, b) => {
+    switch (state.sort) {
+      case 'premio-desc': return b.premioValor - a.premioValor;
+      case 'premio-asc': return a.premioValor - b.premioValor;
+      case 'fecha-asc': return a.fechaISO.localeCompare(b.fechaISO);
+      case 'fecha-desc': return b.fechaISO.localeCompare(a.fechaISO);
+      default: return 0;
+    }
+  });
+}
+
+function render() {
+  const filtered = sortItems(applyFilters());
+  $('visible-count').textContent = filtered.length;
+  const list = $('list');
+  list.innerHTML = '';
+  if (filtered.length === 0) {
+    $('empty').classList.remove('hidden');
+  } else {
+    $('empty').classList.add('hidden');
+    const frag = document.createDocumentFragment();
+    for (const c of filtered) {
+      const a = document.createElement('a');
+      a.href = c.link;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.className = 'row';
+      a.innerHTML =
+        '<div class="main-info">' +
+          '<span class="title" title="' + escapeHtml(c.titulo) + '">' + escapeHtml(c.titulo) + '</span>' +
+          '<div class="meta">' +
+            '<span class="meta-item"><span class="ic">📅</span> ' + escapeHtml(c.fecha) + '</span>' +
+            '<span class="meta-item"><span class="ic">📖</span> ' + escapeHtml(c.genero) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="prize-info" title="' + escapeHtml(c.premio) + '">' +
+          '<span class="prize-amount">' + escapeHtml(c.premio || '—') + '</span>' +
+        '</div>';
+      frag.appendChild(a);
+    }
+    list.appendChild(frag);
+  }
+  renderChips();
+}
+
+function renderChips() {
+  const box = $('active-chips');
+  box.innerHTML = '';
+  const chips = [];
+  if (state.title) chips.push({ key: 'title', label: 'Título incluye «' + state.title + '»' });
+  if (state.fechaDesde) chips.push({ key: 'fechaDesde', label: 'Fecha ≥ ' + formatDate(state.fechaDesde) });
+  if (state.generos.length > 0) chips.push({ key: 'generos', label: 'Géneros: ' + state.generos.join(', ') });
+
+  $('active-count').textContent = chips.length;
+
+  if (chips.length === 0) {
+    const e = document.createElement('span');
+    e.className = 'chip-empty';
+    e.textContent = 'Sin filtros activos · mostrando todos los concursos';
+    box.appendChild(e);
+  } else {
+    for (const chip of chips) {
+      const el = document.createElement('span');
+      el.className = 'chip';
+      el.innerHTML = '<span>' + escapeHtml(chip.label) + '</span>';
+      const x = document.createElement('span');
+      x.className = 'chip-x';
+      x.textContent = '×';
+      x.title = 'Quitar filtro';
+      x.onclick = (ev) => { ev.preventDefault(); clearFilter(chip.key); };
+      el.appendChild(x);
+      box.appendChild(el);
+    }
+  }
+
+  const sortChip = document.createElement('span');
+  sortChip.className = 'chip persistent';
+  sortChip.textContent = 'Orden: ' + sortLabel(state.sort);
+  box.appendChild(sortChip);
+}
+
+function clearFilter(key) {
+  if (key === 'title') { state.title = ''; $('f-title').value = ''; }
+  if (key === 'fechaDesde') { state.fechaDesde = ''; $('f-fecha').value = ''; }
+  if (key === 'generos') { state.generos = []; renderGenres(); }
+  render();
+}
+
+function renderGenres() {
+  const g = $('genres-grid');
+  g.innerHTML = '';
+  for (const opt of GENRE_OPTS) {
+    const el = document.createElement('span');
+    el.className = 'genre-toggle' + (state.generos.includes(opt) ? ' active' : '');
+    el.textContent = opt;
+    el.onclick = () => {
+      if (state.generos.includes(opt)) {
+        state.generos = state.generos.filter(x => x !== opt);
+      } else {
+        state.generos = [...state.generos, opt];
+      }
+      renderGenres();
+      render();
+    };
+    g.appendChild(el);
+  }
+}
+
+function applyDefaults() {
+  state = { ...DEFAULTS, generos: [...DEFAULTS.generos] };
+  $('f-title').value = state.title;
+  $('f-fecha').value = state.fechaDesde;
+  $('f-sort').value = state.sort;
+  renderGenres();
+  render();
+}
+
+function clearAll() {
+  state = { title: '', fechaDesde: '', generos: [], sort: state.sort };
+  $('f-title').value = '';
+  $('f-fecha').value = '';
+  renderGenres();
+  render();
+}
+
+function init() {
+  $('f-title').value = state.title;
+  $('f-fecha').value = state.fechaDesde;
+  $('f-sort').value = state.sort;
+
+  $('f-title').addEventListener('input', e => { state.title = e.target.value; render(); });
+  $('f-fecha').addEventListener('change', e => { state.fechaDesde = e.target.value; render(); });
+  $('f-sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
+  $('btn-reset').addEventListener('click', applyDefaults);
+  $('btn-clear').addEventListener('click', clearAll);
+  $('toggle-btn').addEventListener('click', () => {
+    const ed = $('editor');
+    const open = ed.classList.toggle('hidden');
+    $('toggle-label').textContent = open ? 'Editar filtros' : 'Ocultar editor';
+  });
+
+  renderGenres();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
