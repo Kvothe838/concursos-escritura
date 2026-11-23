@@ -20,6 +20,7 @@ import (
 const (
 	fetchURL  = "https://www.escritores.org/concursos/concursos-1/concursos-literarios"
 	cachePath = "original.html"
+	statePath = ".scrape_state.json"
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
@@ -89,31 +90,47 @@ func main() {
 	abrirNavegador(nombreArchivo)
 }
 
+type estado struct {
+	UltimaDescarga string `json:"ultimaDescarga"` // YYYY-MM-DD
+}
+
+func leerEstado() estado {
+	var e estado
+	if b, err := os.ReadFile(statePath); err == nil {
+		_ = json.Unmarshal(b, &e)
+	}
+	return e
+}
+
+func guardarEstado(e estado) error {
+	b, err := json.MarshalIndent(e, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(statePath, b, 0o644)
+}
+
 func asegurarOriginal() error {
-	if info, err := os.Stat(cachePath); err == nil {
-		if esMismoDia(info.ModTime(), time.Now()) {
-			fmt.Printf("📦 Usando caché del día (%s)\n", info.ModTime().Format("15:04"))
-			return nil
-		}
-		fmt.Printf("🕘 Caché del %s — refrescando...\n", info.ModTime().Format("02/01/2006"))
-	} else {
-		fmt.Println("📭 Sin caché local — descargando por primera vez...")
+	hoy := time.Now().Format("2006-01-02")
+	_, errCache := os.Stat(cachePath)
+	hayCache := errCache == nil
+
+	if hayCache && leerEstado().UltimaDescarga == hoy {
+		fmt.Println("📦 Ya se descargó hoy — usando original.html")
+		return nil
 	}
 
 	if err := descargarHTML(fetchURL, cachePath); err != nil {
-		if _, statErr := os.Stat(cachePath); statErr == nil {
+		if hayCache {
 			fmt.Printf("⚠️  Error al descargar (%v). Continuando con caché anterior.\n", err)
 			return nil
 		}
 		return err
 	}
+	if err := guardarEstado(estado{UltimaDescarga: hoy}); err != nil {
+		fmt.Printf("⚠️  No se pudo guardar el estado: %v\n", err)
+	}
 	return nil
-}
-
-func esMismoDia(a, b time.Time) bool {
-	ay, am, ad := a.Date()
-	by, bm, bd := b.Date()
-	return ay == by && am == bm && ad == bd
 }
 
 func descargarHTML(url, dst string) error {
