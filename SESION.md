@@ -19,6 +19,16 @@
 5. **`contest_filter`** (binario de ~9 MB): se quitó del índice y se añadió a `.gitignore`.
    Sigue en la historia de GitHub. Se decidió no purgarlo con force-push.
 
+6. **Flag `-no-open`** en `escritura.go`: `go run . -no-open` no abre el navegador al terminar.
+7. **Skill `actualizar-concursos`** (`.claude/skills/actualizar-concursos/SKILL.md`):
+   - Corre `go run . -no-open`.
+   - Copia `concursos_lista.html` a `docs/index.html`.
+   - Muestra los cambios y pregunta antes de hacer commit y push a `main`.
+8. **GitHub Pages**: rama `main`, carpeta `/docs`. Activado a mano en Settings → Pages (el token de `gh` local es de otra cuenta).
+   - Al principio no se desplegaba porque faltaba guardar rama y carpeta.
+   - Sitio: https://kvothe838.github.io/concursos-escritura/
+9. `.claude/settings.local.json` y `.scrape_state.json` están en `.gitignore` (configuración y estado locales).
+
 ## Pendiente / a tener en cuenta
 
 - El binario sigue en commits antiguos; limpiarlo requiere reescribir historia y `git push --force`.
